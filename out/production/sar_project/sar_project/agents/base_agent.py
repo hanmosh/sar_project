@@ -1,5 +1,6 @@
 from autogen import AssistantAgent
 from abc import ABC, abstractmethod
+import google.generativeai as genai
 
 class SARBaseAgent(AssistantAgent):
     def __init__(self, name, role, system_message, knowledge_base=None):
@@ -24,7 +25,7 @@ class SARBaseAgent(AssistantAgent):
         load_dotenv()
         return [{
             "model": "gpt-4",
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": os.getenv("GOOGLE_API_KEY"),
             "deployment_name": os.getenv("DEPLOYMENT_NAME")
         }]
 
