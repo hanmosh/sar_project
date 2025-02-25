@@ -1,124 +1,90 @@
 # Search and Rescue (SAR) Agent Framework - CSC 581
 
-## Introduction
+## Functionality of the Medical Team Leader
+- Manages medical roles and supplies
+- Handles patient triage and transport
+- Monitors and updates team health
+- Adapts to field conditions
+- Updates and retrieves agent status
 
-This framework is for CSC 581 students to develop intelligent agents supporting the AI4S&R project. Students can create specialized agents for various SAR roles such as those listed in this spreadsheet:
+## Description of functions
 
-https://docs.google.com/spreadsheets/d/1QZK5HAdDC-_XNui6S0JZTbJH5_PbYJTp8_gyhXmz8Ek/edit?usp=sharing
-https://docs.google.com/spreadsheets/d/11rBV9CbKNeQbWbaks8TF6GO7WcSUDS_-hAoH75UEkgQ/edit?usp=sharing
+- **process_request(message)**: Handles requests based on type ('triage_request', 'transport_request', 'supply_request', 'health_monitoring_request', 'field_adaptation_request'). Returns various outputs depending on the request type.
+  
+- **handle_triage(patients)**: Sorts patients based on severity and arrival time for triage purposes. Input is a list of patient dictionaries; returns a dictionary mapping patient IDs to triage priority.
 
-Each student or team will choose a specific role within the SAR ecosystem and implement an agent that provides decision support and automation for that role.
+- **organize_transport(patient_id, destination, urgency)**: Organizes transport for patients based on urgency (high, medium, low), affecting the choice of transport (helicopter, ambulance, non-emergency vehicle). Returns transport details including status and type.
 
-## How to Submit
-Please submit a link to your clone of the repository to Canvas. 
+- **check_transport_availability(transport_type)**: Checks the availability of specified transport types. Returns a boolean.
 
-## Prerequisites
+- **manage_supplies(item, quantity)**: Manages inventory by updating quantities and reordering if necessary, based on reorder thresholds. Returns an updated status of the inventory and reorder action.
 
-- Python 3.8 or higher
-- pyenv (recommended for Python version management)
-- pip (for dependency management)
+- **check_inventory(item)**: Returns the current inventory level for a specified item.
 
-## Setup and Installation
+- **update_inventory(item, new_quantity)**: Updates the inventory with a new quantity for a specific item.
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd sar-project
+- **get_reorder_threshold(item)**: Retrieves the reorder threshold for a specific item.
+
+- **reorder_supplies(item, quantity_needed)**: Places an order for supplies that are below the reorder threshold.
+
+- **monitor_team_health()**: Reports on the health and stress levels of the SAR team based on current data. Returns health data including stress levels and recommendations.
+
+- **update_team_health(average_stress_level, high_risk_members, recommendations)**: Updates the health data of the SAR team. Accepts new values for stress level, high-risk members, and health recommendations.
+
+- **adapt_to_field_conditions(conditions)**: Adapts operations based on real-time field conditions like weather and terrain. Returns the adjustments made to operations.
+
+- **update_status(status)**: Updates the agent's status.
+
+- **get_status()**: Returns the agent's current status.
+
+## Examples of how to use
+
+Create an instance of the MedicalTeamLeader
+```
+from medical_agent import MedicalTeamLeader
+mtl = MedicalTeamLeader()
 ```
 
-2. Set up Python environment:
-```bash
-# Using pyenv (recommended)
-pyenv install 3.9.6  # or your preferred version
-pyenv local 3.9.6
-
-# Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Unix/macOS
-# or
-.venv\Scripts\activate     # On Windows
+Triage patients
+```
+triage_result = mtl.process_request({
+    "triage_request": True,
+    "patients": [
+        {"id": "001", "severity": "high", "arrival_time": 1},
+        {"id": "002", "severity": "medium", "arrival_time": 2}
+    ]
+})
 ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-pip install -e .
+Organize transport for a patient
+```
+transport_result = mtl.process_request({
+    "transport_request": True,
+    "patient_id": "001",
+    "destination": "Local Hospital",
+    "urgency": "high"
+})
 ```
 
-4. Configure environment variables:
-
-#### OpenAI:
-- Obtain required API keys:
-  1. OpenAI API key: Sign up at https://platform.openai.com/signup
-- Update your `.env` file with the following:
-    ```
-    OPENAI_API_KEY=your_openai_api_key_here
-    ```
-#### Google Gemini:
-- Obtain required API keys:
-  1. ``` pip install google-generativeai ```
-  2. ``` import google.generativeai as genai ```
-  3. Google Gemini API Key: Obtain at https://aistudio.google.com/apikey
-- Configure with the following:
-  ```
-  genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-  ```
-
-Make sure to keep your `.env` file private and never commit it to version control.
-
-## Project Structure
-
+Manage medical supplies and reorder if necessary
 ```
-sar-project/
-├── src/
-│   └── sar_project/         # Main package directory
-│       └── agents/          # Agent implementations
-│       └── config/          # Configuration and settings
-│       └── knowledge/       # Knowledge base implementations
-├── tests/                   # Test directory
-├── pyproject.toml           # Project metadata and build configuration
-├── requirements.txt         # Project dependencies
-└── .env                     # Environment configuration
+supply_result = mtl.process_request({
+    "supply_request": True,
+    "item": "bandages",
+    "quantity": -5  # Reduce inventory by 5
+})
 ```
 
-## Development
+Update the health data of the team
+```
+health_update_result = mtl.update_team_health("low", 1, ["regular check-ups recommended"])
+```
 
-This project follows modern Python development practices:
+Adapt operations to stormy weather conditions
+```
+adaptation_result = mtl.adapt_to_field_conditions({
+    "weather": "stormy",
+    "terrain": "flat"
+})
+```
 
-1. Source code is organized in the `src/sar_project` layout
-2. Use `pip install -e .` for development installation
-3. Run tests with `pytest tests/`
-4. Follow the existing code style and structure
-5. Make sure to update requirements.txt when adding dependencies
-
-
-## FAQ
-
-### Assignment Questions
-
-**Q: How do I choose a role for my agent?**
-
-**A:** Review the list of SAR roles above and consider which aspects interest you most. Your agent should provide clear value to SAR operations through automation, decision support, or information processing.
-
-**Q: What capabilities should my agent have?**
-
-**A:** Your agent should handle tasks relevant to its role such as: data processing, decision making, communication with other agents, and providing actionable information to human operators.
-
-**Q: Can I add new dependencies?**
-
-**A:** Yes, you can add new Python packages to requirements.txt as needed for your implementation.
-
-
-### Technical Questions
-
-**Q: Why am I getting API key errors?**
-
-**A:** Ensure you've properly set up your .env file and obtained valid API keys from the services listed above.
-
-**Q: How do I test my agent?**
-
-**A:** Use the provided test framework in the tests/ directory. Write tests that verify your agent's core functionality.
-
-**Q: Can I use external libraries for my agent?**
-
-**A:** Yes, you can use external libraries as long as they are compatible.
