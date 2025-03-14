@@ -1,4 +1,5 @@
 from sar_project.agents.base_agent import SARBaseAgent
+from datetime import datetime
 
 class MedicalTeamLeader(SARBaseAgent):
 
@@ -50,6 +51,22 @@ class MedicalTeamLeader(SARBaseAgent):
                 return self.monitor_team_health()
             elif "field_adaptation_request" in message:
                 return self.adapt_to_field_conditions(message["conditions"])
+            elif "add_patient_request" in message:
+                return self.add_patient(message["patient_data"])
+            elif "update_patient_request" in message:
+                return self.update_patient_record(
+                    message["patient_id"],
+                    message["update_data"]
+                )
+            elif "get_patient_request" in message:
+                return self.get_patient_record(message["patient_id"])
+            elif "list_patients_request" in message:
+                return self.list_patients(message.get("status", None))
+            elif "discharge_patient_request" in message:
+                return self.discharge_patient(
+                    message["patient_id"],
+                    message.get("discharge_notes", "")
+                )
             else:
                 return {"error": "Unknown request type"}
         except Exception as e:
@@ -62,6 +79,26 @@ class MedicalTeamLeader(SARBaseAgent):
         # sorting patients by severity and then arrival time, if severities are the same
         sorted_patients = sorted(patients, key=lambda x: (severity_to_priority[x["severity"]], x["arrival_time"]))
         triaged_data = {patient["id"]: i+1 for i, patient in enumerate(sorted_patients)}
+        
+        for patient in patients:
+            if patient["id"] not in self.patient_records:
+                self.add_patient({
+                    "id": patient["id"],
+                    "severity": patient["severity"],
+                    "arrival_time": patient["arrival_time"],
+                    "triage_time": datetime.now().isoformat(),
+                    "status": "triaged"
+                })
+            else:
+                self.update_patient_record(
+                    patient["id"],
+                    {
+                        "severity": patient["severity"],
+                        "triage_time": datetime.now().isoformat(),
+                        "status": "triaged"
+                    }
+                )
+                
         return triaged_data
 
     def organize_transport(self, patient_id, destination, urgency):
@@ -84,6 +121,18 @@ class MedicalTeamLeader(SARBaseAgent):
         if urgency in transport_options:
             transport_type = transport_options[urgency]
             if self.check_transport_availability(transport_type):
+                # Update patient record with transport information
+                if patient_id in self.patient_records:
+                    self.update_patient_record(
+                        patient_id,
+                        {
+                            "transport_type": transport_type,
+                            "destination": destination,
+                            "transport_time": datetime.now().isoformat(),
+                            "status": "in transit"
+                        }
+                    )
+                
                 return {
                     "patient_id": patient_id,
                     "transport_status": "organized",
@@ -202,3 +251,128 @@ class MedicalTeamLeader(SARBaseAgent):
     def get_status(self):
         """Get the agent's current status"""
         return getattr(self, "status", "unknown")
+            
+    def add_patient(self, patient_data):
+        """Add a new patient to the records.
+        
+        Args:
+            patient_data (dict): Patient information including id, condition, etc.
+            
+        Returns:
+            dict: Status of the operation and patient ID
+        """
+        if "id" not in patient_data:
+            return {"error": "Patient ID is required"}
+            
+        patient_id = patient_data["id"]
+        
+        if "status" not in patient_data:
+            patient_data["status"] = "registered"
+        if "registration_time" not in patient_data:
+            patient_data["registration_time"] = datetime.now().isoformat()
+            
+        if patient_id in self.patient_records:
+            return {"error": "Patient already exists", "patient_id": patient_id}
+            
+        self.patient_records[patient_id] = patient_data
+        return {"status": "success", "message": "Patient added", "patient_id": patient_id}
+        
+    def update_patient_record(self, patient_id, update_data):
+        """Update an existing patient record with new information.
+        
+        Args:
+            patient_id (str): The identifier for the patient
+            update_data (dict): New data to update the patient record
+            
+        Returns:
+            dict: Status of the operation and updated patient data
+        """
+        if patient_id not in self.patient_records:
+            return {"error": "Patient not found", "patient_id": patient_id}
+            
+        self.patient_records[patient_id].update(update_data)
+        
+        self.patient_records[patient_id]["last_updated"] = datetime.now().isoformat()
+        
+        return {
+            "status": "success", 
+            "message": "Patient record updated", 
+            "patient_id": patient_id,
+            "patient_data": self.patient_records[patient_id]
+        }
+        
+    def get_patient_record(self, patient_id):
+        """Retrieve a patient's medical record.
+        
+        Args:
+            patient_id (str): The identifier for the patient
+            
+        Returns:
+            dict: Patient data or error message
+        """
+        if patient_id not in self.patient_records:
+            return {"error": "Patient not found", "patient_id": patient_id}
+            
+        return {
+            "status": "success",
+            "patient_id": patient_id,
+            "patient_data": self.patient_records[patient_id]
+        }
+        
+    def list_patients(self, status=None):
+        """List all patients, optionally filtered by status.
+        
+        Args:
+            status (str, optional): Filter patients by this status
+            
+        Returns:
+            dict: List of patient IDs and their basic information
+        """
+        if status:
+            filtered_patients = {
+                pid: data for pid, data in self.patient_records.items() 
+                if data.get("status") == status
+            }
+        else:
+            filtered_patients = self.patient_records
+            
+        patient_list = [
+            {
+                "id": pid,
+                "status": data.get("status", "unknown"),
+                "severity": data.get("severity", "unknown"),
+                "registration_time": data.get("registration_time", "unknown")
+            }
+            for pid, data in filtered_patients.items()
+        ]
+        
+        return {
+            "status": "success",
+            "count": len(patient_list),
+            "patients": patient_list
+        }
+        
+    def discharge_patient(self, patient_id, discharge_notes=""):
+        """Discharge a patient from medical care.
+        
+        Args:
+            patient_id (str): The identifier for the patient
+            discharge_notes (str, optional): Notes regarding the discharge
+            
+        Returns:
+            dict: Status of the operation
+        """
+        if patient_id not in self.patient_records:
+            return {"error": "Patient not found", "patient_id": patient_id}
+            
+        self.patient_records[patient_id].update({
+            "status": "discharged",
+            "discharge_time": datetime.now().isoformat(),
+            "discharge_notes": discharge_notes
+        })
+        
+        return {
+            "status": "success",
+            "message": "Patient discharged",
+            "patient_id": patient_id
+        }
