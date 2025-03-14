@@ -37,6 +37,8 @@
 
 - **get_status()**: Returns the agent's current status.
 
+*new functions in modifications section*
+
 ## Examples of how to use
 
 Create an instance of the MedicalTeamLeader
@@ -87,4 +89,15 @@ adaptation_result = mtl.adapt_to_field_conditions({
     "terrain": "flat"
 })
 ```
+## Modifications 
+
+### New suggested patient record functionality: 
+- **add_patient(patient_data)**: Adds a new patient to the record with specified info and returns status and patient ID
+- **update_patient_record(patient_id, update_data)**: updates the existing patient record with new info, returns status and updated data
+- **get_patient_record(patient_id)**: retrieves a patient's complete medical record and returns patient data or an error
+- **list_patients(status)**: lists all patients, can be filtered by status. Returns a list of patient IDs + basic info
+- **discharge_patient(patient_id, discharge_notes)**: marks a patient as discharged with notes and a timestamp, and returns operation status
+
+## Insights Gained
+Something I learned was the importance of good documentation and effectively sharing your code with others. It is important to not only write code that is easy to use but also code that is easy to follow. Through developing this SAR framework, I gained appreciation for how complex real-world emergency systems can be - even with just patient care there are countless moving parts to coordinate: resource management, personnel tracking, and field adaptations, to name a few. This project helped me see that writing clean, well-organized code with thorough documentation is a practical necessity when building these systems. I got good feedback on my documentation, so I will make sure to keep that up and continue making my code accessible and understandable to others, especially in domains like SAR, where many different specialists need to work together.
 
